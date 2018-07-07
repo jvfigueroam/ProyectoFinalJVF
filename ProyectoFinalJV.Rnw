@@ -1,0 +1,244 @@
+\documentclass{article}
+
+
+
+\usepackage[utf8]{inputenc}
+\usepackage{longtable}
+\usepackage{authblk}
+\usepackage{adjustbox}
+
+\usepackage{natbib}
+
+
+
+
+
+\title{Indice De Desarrollo Humano en Colombia}
+% autores
+\renewcommand\Authand{ y }
+\author[]{\normalsize Juan Victor Figueroa Mijares}
+
+\affil[,]{\small  Facultad de Ingenieria,\\ 
+
+Universidad de los Andes\\
+\texttt{{jv.figueroa10}@uniandes.edu.co}}
+
+\date{30 de Junio de 2018}
+\usepackage{Sweave}
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\maketitle
+
+\begin{abstract}
+
+
+Este es mi primer trabajo en exploracion y modelamiento de indices usando LATEX. Este trabajo lo he hecho bajo la filosofia de trabajo replicable.
+
+\end{abstract}
+
+
+\section*{Introduccion}
+
+
+Aqui les presento mi investigacion sobre diversos indices sociales en el mundo. Los indices los consegui de wikipedia,espero que les gusten mucho. 
+
+\clearpage
+
+\section{Exploracion Univariada}\label{univariada}
+
+  En esta seccion exploro cada indice.
+
+  Este es el comportamiento de las variables a estudiar.    Veamos su tabla de frecuencias:
+
+<<get data, echo=FALSE>>=
+filename="colombia.csv"
+colb=read.csv(filename, stringsAsFactors = FALSE)
+dataColombia=read.csv(filename, stringsAsFactors = FALSE)
+
+
+
+@
+
+
+
+<<results = tex,echo=FALSE>>=
+ library(stargazer)
+vars<- colb[,c(1:5)]
+stargazer(vars, title = "Medias Estadisticas", label = "Status",summary.stat = c("n","min","median","max","Mean"))
+
+@
+
+
+\begin{figure}[h]
+\centering
+
+<<histogramas, echo=FALSE,fig=TRUE>>=
+par(mfrow=c(2,2))
+
+paleta= "Red"
+hist(colb$IDH,main = "Histograma IDH",col=paleta)
+
+
+hist(colb$Poblaci..n.Cabecera,main = "Histograma Cabecera",col = paleta)
+
+
+
+
+hist(colb$Poblaci..n.Resto,main = "Histograma Resto",col = paleta)
+
+hist(colb$Poblaci..n.Total,main = "Histograma pob Total",col = paleta)
+
+
+
+@
+
+\caption{Histogramas variables de interes}
+\label{histog}
+\end{figure}
+
+Dado el sesgo de las poblaciones, podemos trasformaslas aplicando el logaritmo para que se acerquen a la normalidad. 
+
+<<HistogramasAjustados,echo=false,fig=true>>=
+
+
+par(mfrow=c(2,3))
+paleta= "Red"
+CabeceraLog= log10(colb$Poblaci..n.Cabecera)
+RestoLog= log10(colb$Poblaci..n.Resto)
+TotalLog =log10(colb$Poblaci..n.Total)
+
+hist(CabeceraLog,main = "CabeceraLog",col = paleta)
+hist(RestoLog,main = "RestoLog",col = paleta)
+hist(TotalLog,main = "TotalLog",col = paleta)
+
+@
+
+
+
+<<trasformacionDatos,results=tex,echo=false>>=
+
+library(stargazer)
+colb$Cabecera.Ajustada= log(colb$Poblaci..n.Cabecera)
+colb$Resto.Ajustada= log(colb$Poblaci..n.Resto)
+
+vars <- colb[,c(7:8)]
+stargazer(vars, title="Medidas estadisticas datos Transformados",label="stats1",summary.stat = c("n","min","median","max","Mean"))
+
+
+@
+
+
+
+
+
+
+\clearpage
+
+\section{Exploracion Bivariada}
+
+En este trabajo estamos interesados en el impacto de los otros indices en el nivel de IDH. Veamos las relaciones bivariadas que tiene esta variable con todas las demas:
+
+
+<<corIDH, results=tex, echo=FALSE>>=
+
+explanans = (names(dataColombia)[c(3,4,5)])
+corIDH = cor(dataColombia[,1],log10(dataColombia[,(explanans)]),
+             
+            use = "na.or.complete")
+
+stargazer(corIDH, title="Correlacion del IDH con las poblaciones",label = "corIDH")
+
+
+@
+
+
+
+
+
+
+La correlacion entre las variables independientes
+
+<<corrTableX, results=tex, echo=FALSE>>=
+
+corrTableX = round(cor(log10(dataColombia[explanans]),
+               use = "na.or.complete"),2)
+  corrTableX_copy=corrTableX
+# Hide upper triangle
+
+corrTableX[upper.tri(corrTableX)]<-""
+
+stargazer(corrTableX, title="Correlacion entre variables independientes",label = 'corrTableX')
+
+@
+
+
+Lo visto en la Tabla \ref{corrTableX} se refuerza claramente en la Figura \ref{corrPlotX}.
+
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{width=7cm,height=7cm,clip,trim=1.5cm 0.5cm 0cm 1.5cm}
+
+
+<<corrPlotX, echo=FALSE,fig=TRUE>>=
+library(corrplot)
+corrplot(corrTableX_copy, type = "lower", diag = F,
+         addCoef.col = "black")
+@
+
+
+\end{adjustbox}
+\caption{correlacion entre predictores}
+\label{corrPlotX}
+\end{figure}
+
+
+
+
+%<<pcorre, echo=FALSE,fig=TRUE>>=
+%# y la correlaci??n entre las variables independientes:
+%#ver:
+ % plot(colb[,explanans])
+@
+
+
+\clearpage
+
+\section{Modelos de Regresion}
+
+
+
+<<regresiones, echo=FALSE>>=
+  LinRegA = lm(IDH ~ ., data = colb[,c(1,7)])
+  LinRegB = lm(IDH ~ ., data = colb[,c(1,7:8)])
+
+@
+
+
+
+<<regresionesPlot,results=tex, echo=false>>=
+stargazer(LinRegA,LinRegB,
+          title = "Modelos de Regresion", 
+          label = "regresiones")
+@
+
+
+
+
+\clearpage
+
+
+\section{Exploracion Espacial}
+
+ calculemos conglomerados de regiones colombianas usando toda la informacion de los indicadores. Como nuestras variables son ordinales utilizaremos un proceso de conglomeracion donde las distancia seran calculadas usando la medida 
+
+
+
+
+
+
+
+
+
+\end{document}
